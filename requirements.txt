@@ -4,8 +4,22 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
+-e git+git://github.com/ollema/gym-minigrid.git#egg=gym-minigrid
 ansimarkup==1.4.0         # via better-exceptions-fork, loguru
 better-exceptions-fork==0.2.1.post6  # via loguru
+certifi==2018.11.29       # via requests
+chardet==3.0.4            # via requests
 colorama==0.4.1           # via ansimarkup, loguru
+future==0.17.1            # via pyglet
+gym==0.11.0
+idna==2.8                 # via requests
 loguru==0.2.5
+numpy==1.15.4             # via gym, scipy
+pyglet==1.3.2             # via gym
 pygments==2.3.1           # via better-exceptions-fork
+pyqt5-sip==4.19.14        # via pyqt5
+pyqt5==5.12
+requests==2.21.0          # via gym
+scipy==1.2.1              # via gym
+six==1.12.0               # via gym
+urllib3==1.24.1           # via requests
