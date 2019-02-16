@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+import purls
+
+if __name__ == "__main__":
+    exit_status = purls.main()
+    exit(exit_status)

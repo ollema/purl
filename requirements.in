@@ -1,2 +1,5 @@
 loguru
 -e git+git://github.com/ollema/gym-minigrid.git#egg=gym-minigrid
+
+black
+flake8
