@@ -6,7 +6,7 @@ class AlgorithmParameterError(Exception):
         self.msg = msg
 
 
-class ReinforcmentLearningAlgorithm(ABC):
+class ReinforcementLearningAlgorithm(ABC):
     """
     The base class for reinforcement learning algorithms.
 

@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 from gym_minigrid.wrappers import FullyObsWrapper
-from purls.algorithms.base import ReinforcmentLearningAlgorithm
+from purls.algorithms.base import ReinforcementLearningAlgorithm
 from purls.utils.logs import debug, info, success
 
 DEFAULTS = {
@@ -13,7 +13,7 @@ DEFAULTS = {
 }
 
 
-class QLearningWithTable(ReinforcmentLearningAlgorithm):
+class QLearningWithTable(ReinforcementLearningAlgorithm):
     def __init__(self, env, args):
         super().__init__(env, args, DEFAULTS)
 
@@ -149,14 +149,14 @@ class QLearningWithTable(ReinforcmentLearningAlgorithm):
 
 def minigrid_encoding_to_table(s):
     """
-    The input is a matrix with the dimensions n x m x 3,
+    The input s is a matrix with the dimensions n x m x 3,
     which, for each x in n, y in m,
     contains: object encoding, direction, state
 
     In other words, each state has:
-    * a certain object type there
+    * a certain object type (agent, wall, lava etc...)
     * the direction of the object
-    * if it's open/closed/locked (only used for doors)
+    * if it's open/closed/locked (mostly used for doors)
 
     We are only interested in where our agent is located and what direction
     it is facing. We can determine this by flattening the matrix and looking for
