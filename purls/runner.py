@@ -11,7 +11,6 @@ ENVIRONMENTS = {}
 
 def run(action, args):
     try:
-
         if args.algorithm not in ALGORITHMS:
             valid_algorithms = ", ".join(ALGORITHMS.keys())
             error(f"Choose a valid algorithm: {valid_algorithms}")

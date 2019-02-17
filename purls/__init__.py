@@ -136,7 +136,7 @@ def main():
         type=str,
         default=None,
         metavar="model-name",
-        help="str:   use model-name used when loading the model to visualize",
+        help="str:   use model-name used when loading the model to evaluate",
     )
     p_evaluate.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
