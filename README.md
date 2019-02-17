@@ -52,7 +52,7 @@ There are three main subcommands to PURL
 To train a model, run:
 
 ```
-purl train
+./purl train
 ```
 
 ### `visualize`
@@ -60,7 +60,7 @@ purl train
 To visualize a model, run:
 
 ```
-purl vizualize
+./purl vizualize
 ```
 
 ### `evaluate`
@@ -68,7 +68,7 @@ purl vizualize
 To evaluate a model, run:
 
 ```
-purl evaluate
+./purl evaluate
 ```
 
 
