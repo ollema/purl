@@ -5,9 +5,7 @@ from loguru import logger
 
 from purls.utils.logs import get_format, info, debug, error
 
-from purls.train import train
-from purls.visualize import visualize
-from purls.evaluate import evaluate
+from purls.runner import run
 
 
 def main():
@@ -16,22 +14,137 @@ def main():
 
     subp = p.add_subparsers(dest="subcmd_name")
 
-    p_train = subp.add_parser("train")
-    p_train.add_argument("-a", "--algorithm", type=str, required=True)
-    p_train.add_argument("-e", "--env", type=str, required=True)
-    p_train.add_argument("-m", "--model", type=str, default=None)
-    p_train.add_argument("-s", "--seed", type=int, default=1)
-    p_train.set_defaults(command=train)
+    p_train = subp.add_parser("train", formatter_class=argparse.RawTextHelpFormatter)
+    p_train.add_argument(
+        "--algorithm",
+        type=str,
+        required=True,
+        metavar="algo",
+        help="str:   reinforcement learning algorithm algo to use.",
+    )
+    p_train.add_argument(
+        "--environment",
+        type=str,
+        required=True,
+        metavar="env",
+        help="str:   minigrid environment env to use.",
+    )
+    p_train.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        metavar="α",
+        help="float: learning rate α to use.",
+    )
+    p_train.add_argument(
+        "--discount-factor",
+        type=float,
+        default=None,
+        metavar="γ",
+        help="float: discount factor γ to use.",
+    )
+    p_train.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        metavar="n",
+        help="int:   train model for up to n episodes",
+    )
+    p_train.add_argument(
+        "--render-interval",
+        type=int,
+        default=0,
+        metavar="i",
+        help="int:   if i > 0, render every i:th episode",
+    )
+    p_train.add_argument(
+        "--save-interval",
+        type=int,
+        default=0,
+        metavar="j",
+        help="int:   if j > 0, save model every j:th episode",
+    )
+    p_train.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="model-name",
+        help="str:   use model-name used when (if) the model is saved",
+    )
+    p_train.add_argument(
+        "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
+    )
+    p_train.add_argument(
+        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
+    )
+    p_train.set_defaults(action="train")
 
     p_visualize = subp.add_parser("visualize")
-    p_visualize.add_argument("-m", "--model", type=str, required=True)
-    p_visualize.add_argument("-s", "--seed", type=int, default=1)
-    p_visualize.set_defaults(command=visualize)
+    p_visualize.add_argument(
+        "--algorithm",
+        type=str,
+        required=True,
+        metavar="algo",
+        help="str:   reinforcement learning algorithm algo to use.",
+    )
+    p_visualize.add_argument(
+        "--environment",
+        type=str,
+        required=True,
+        metavar="env",
+        help="str:   minigrid environment env to use.",
+    )
+    p_visualize.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="model-name",
+        help="str:   use model-name used when loading the model to visualize",
+    )
+    p_visualize.add_argument(
+        "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
+    )
+    p_visualize.add_argument(
+        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
+    )
+    p_visualize.set_defaults(action="visualize")
 
     p_evaluate = subp.add_parser("evaluate")
-    p_evaluate.add_argument("-m", "--model", type=str, required=True)
-    p_evaluate.add_argument("-s", "--seed", type=int, default=1)
-    p_evaluate.set_defaults(command=evaluate)
+    p_evaluate.add_argument(
+        "--algorithm",
+        type=str,
+        required=True,
+        metavar="algo",
+        help="str:   reinforcement learning algorithm algo to use.",
+    )
+    p_evaluate.add_argument(
+        "--environment",
+        type=str,
+        required=True,
+        metavar="env",
+        help="str:   minigrid environment env to use.",
+    )
+    p_evaluate.add_argument(
+        "--episodes",
+        type=int,
+        default=None,
+        metavar="n",
+        help="int:   evaluate model for up to n episodes",
+    )
+    p_evaluate.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="model-name",
+        help="str:   use model-name used when loading the model to evaluate",
+    )
+    p_evaluate.add_argument(
+        "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
+    )
+    p_evaluate.add_argument(
+        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
+    )
+    p_evaluate.set_defaults(action="evaluate")
 
     args = p.parse_args()
 
@@ -39,16 +152,16 @@ def main():
     config = {"handlers": [{"sink": stderr, "format": fmt}]}
     logger.configure(**config)
 
-    if not hasattr(args, "command"):
+    if not hasattr(args, "action"):
         error("You need to select a subcommand {train, visualize, evaluate}")
         info("\n" + p_train.format_usage() + p_visualize.format_usage() + p_evaluate.format_usage())
         return 1
-
     try:
-        result = args.command(args)
+        result = run(args.action, args)
         debug(f"{args.subcmd_name} returned {result}")
     except KeyboardInterrupt:
         error("Interrupted by user")
+        return 1
     return result
 
 
