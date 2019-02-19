@@ -12,6 +12,8 @@ DEFAULTS = {
     "fully_obs": "required",
 }
 
+DIRECTIONS = 4
+
 
 class QLearningWithTable(ReinforcementLearningAlgorithm):
     def __init__(self, env, args):
@@ -22,8 +24,9 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
 
         # we don't need the pick up, drop... actions
         reduced_action_space = env.action_space.n - 4
+        positions = env.grid.width * env.grid.height
 
-        Q = np.zeros([(env.grid.width * env.grid.height * 4), reduced_action_space])
+        Q = np.zeros([(positions * DIRECTIONS), reduced_action_space])
 
         rewards = []
 
@@ -37,8 +40,8 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
             done = False
 
             j = 0
-            # TODO: verify that env.grid.width * env.grid.height * 4 is a valid limit
-            while j < env.grid.width * env.grid.height * 4:
+            # TODO: verify that positions * DIRECTIONS is a valid limit
+            while j < positions * DIRECTIONS:
                 j += 1
 
                 # Choose an action by greedily (with noise) picking from Q table
@@ -55,7 +58,7 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
 
                 if self.render_interval != 0 and i % self.render_interval == 0:
                     env.render()
-                    time.sleep(0.3)
+                    time.sleep(1 / self.fps)
 
                 if done:
                     break
@@ -63,13 +66,13 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
             rewards.append(current_reward)
 
             if i % 10 == 0:
-                debug(f"episode {i:4d} finished - reward: {rewards[-1]:2f}")
+                debug(f"episode {i:5d} finished - reward: {rewards[-1]:2f}")
 
             if self.save_interval != 0 and i % self.save_interval == 0:
                 self.save(Q)
                 debug(f"model saved in models/{self.model_name}.txt")
 
-        success(f"all {self.num_episodes:04d} episodes finished!")
+        success(f"all {self.num_episodes:5d} episodes finished!")
         info(f"reward for the final episode: {rewards[-1]:2f}")
 
         if self.save_interval != 0:
@@ -104,7 +107,7 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
                 s = s1
 
                 env.render()
-                time.sleep(0.3)
+                time.sleep(1 / self.fps)
 
                 if done:
                     break
@@ -112,6 +115,9 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
 
     def evaluate(self):
         env = FullyObsWrapper(self.env)
+
+        positions = env.grid.width * env.grid.height
+
         Q = self.load()
 
         rewards = []
@@ -126,8 +132,8 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
             done = False
 
             j = 0
-            # TODO: verify that env.grid.width * env.grid.height * 4 is a valid limit
-            while j < env.grid.width * env.grid.height * 4:
+            # TODO: verify that positions * DIRECTIONS is a valid limit
+            while j < positions * DIRECTIONS:
                 j += 1
 
                 a = np.argmax(Q[s, :])
@@ -142,7 +148,7 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
 
             rewards.append(current_reward)
 
-        success(f"all {self.num_episodes:04d} episodes finished!")
+        success(f"all {self.num_episodes:5d} episodes finished!")
         avg_reward = np.average(rewards)
         info(f"average reward: {avg_reward:2f}")
 

@@ -32,13 +32,14 @@ class ReinforcementLearningAlgorithm(ABC):
     Please specify "fully_obs": required" if the algorithm will ONLY work with
     a fully observable gridworld (like Q-table)
 
-    If the algorithm is not compatible with the FulyObsWrapper, you can specify "nope"
+    If the algorithm is not compatible with the FullyObsWrapper, you can specify "nope"
     or any other string (except for compatible/required of course!)
 
     """
 
     def __init__(self, env, args, defaults):
         self.env = env
+
         if "learning_rate" in args and args.learning_rate:
             self.lr = args.learning_rate
         else:
@@ -54,11 +55,15 @@ class ReinforcementLearningAlgorithm(ABC):
         else:
             self.num_episodes = defaults["episodes"]
 
-        if "render_interval" in args:
+        if "render_interval" in args and args.render_interval:
             self.render_interval = args.render_interval
+        else:
+            self.render_interval = 0
 
-        if "save_interval" in args:
+        if "save_interval" in args and args.save_interval:
             self.save_interval = args.save_interval
+        else:
+            self.save_interval = 0
 
         if args.model:
             self.model_name = args.model
@@ -68,6 +73,11 @@ class ReinforcementLearningAlgorithm(ABC):
                     f"Save interval set to {self.save_interval} but no model name specified!"
                 )
             self.model_name = None
+
+        if "fps" in args and args.fps:
+            self.fps = args.fps
+        else:
+            self.fps = 2
 
         if args.seed:
             self.seed = args.seed
