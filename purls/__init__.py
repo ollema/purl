@@ -53,14 +53,14 @@ def main():
     p_train.add_argument(
         "--render-interval",
         type=int,
-        default=0,
+        default=None,
         metavar="i",
         help="int:   if i > 0, render every i:th episode",
     )
     p_train.add_argument(
         "--save-interval",
         type=int,
-        default=0,
+        default=None,
         metavar="j",
         help="int:   if j > 0, save model every j:th episode",
     )
@@ -73,6 +73,13 @@ def main():
     )
     p_train.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
+    )
+    p_train.add_argument(
+        "--fps",
+        type=int,
+        default=None,
+        metavar="fps",
+        help="int:   rendering delay = 1/fps + time to compute next action",
     )
     p_train.add_argument(
         "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
@@ -103,6 +110,13 @@ def main():
     )
     p_visualize.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
+    )
+    p_visualize.add_argument(
+        "--fps",
+        type=int,
+        default=None,
+        metavar="fps",
+        help="int:   rendering delay = 1/fps + time to compute next action",
     )
     p_visualize.add_argument(
         "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
