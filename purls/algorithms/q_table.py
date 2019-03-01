@@ -5,50 +5,45 @@ from gym_minigrid.wrappers import FullyObsWrapper
 from purls.algorithms.base import ReinforcementLearningAlgorithm
 from purls.utils.logs import debug, info, success
 
-DEFAULTS = {
-    "learning_rate": 0.8,
-    "discount_factor": 0.95,
-    "episodes": 2000,
-    "fully_obs": "required",
-}
-
 DIRECTIONS = 4
 
 
 class QLearningWithTable(ReinforcementLearningAlgorithm):
     def __init__(self, env, args):
-        super().__init__(env, args, DEFAULTS)
-
-    def train(self):
-        env = FullyObsWrapper(self.env)
+        super().__init__(
+            args, default_learning_rate=0.8, default_discount_factor=0.95, default_num_episodes=2000
+        )
+        self.env = FullyObsWrapper(env)
 
         # we don't need the pick up, drop... actions
-        reduced_action_space = env.action_space.n - 4
-        positions = env.grid.width * env.grid.height
+        self.action_space_n = self.env.action_space.n - 4
+        self.positions = self.env.grid.width * self.env.grid.height
 
-        Q = np.zeros([(positions * DIRECTIONS), reduced_action_space])
+        self.model = {"q_table": np.zeros([(self.positions * DIRECTIONS), self.action_space_n])}
+
+    def train(self):
+        Q = self.model["q_table"]
 
         rewards = []
 
         for i in range(self.num_episodes + 1):
             if self.seed:
-                env.seed(self.seed)
-            s = env.reset()
+                self.env.seed(self.seed)
+            s = self.env.reset()
             s = minigrid_encoding_to_table(s)
 
             current_reward = 0
             done = False
 
             j = 0
-            # TODO: verify that positions * DIRECTIONS is a valid limit
-            while j < positions * DIRECTIONS:
+            while j < self.positions * DIRECTIONS:
                 j += 1
 
                 # Choose an action by greedily (with noise) picking from Q table
-                a = np.argmax(Q[s, :] + np.random.randn(1, reduced_action_space) * (1.0 / (i + 1)))
+                a = np.argmax(Q[s, :] + np.random.randn(1, self.action_space_n) * (1.0 / (i + 1)))
 
                 # Get new state, reward and done from environment
-                s1, reward, done, _ = env.step(a)
+                s1, reward, done, _ = self.env.step(a)
                 s1 = minigrid_encoding_to_table(s1)
 
                 # Update Q-Table with new knowledge
@@ -57,7 +52,7 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
                 s = s1
 
                 if self.render_interval != 0 and i % self.render_interval == 0:
-                    env.render()
+                    self.env.render()
                     time.sleep(1 / self.fps)
 
                 if done:
@@ -69,44 +64,35 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
                 debug(f"episode {i:5d} finished - reward: {rewards[-1]:2f}")
 
             if self.save_interval != 0 and i % self.save_interval == 0:
-                self.save(Q)
-                debug(f"model saved in models/{self.model_name}.txt")
+                self.save()
 
         success(f"all {self.num_episodes:5d} episodes finished!")
         info(f"reward for the final episode: {rewards[-1]:2f}")
 
         if self.save_interval != 0:
-            info(f"model saved in models/{self.model_name}.txt")
-            self.save(Q)
-
-    def save(self, q_table):
-        np.savetxt(f"models/{self.model_name}.txt", q_table, delimiter=",")
-
-    def load(self):
-        return np.loadtxt(f"models/{self.model_name}.txt", delimiter=",")
+            self.save()
 
     def visualize(self):
-        env = FullyObsWrapper(self.env)
-        Q = self.load()
+        self.model = self.load()
+        Q = self.model["q_table"]
 
         while True:
             if self.seed:
-                env.seed(self.seed)
-            s = env.reset()
+                self.env.seed(self.seed)
+            s = self.env.reset()
             s = minigrid_encoding_to_table(s)
-            env.render()
+            self.env.render()
 
             done = False
 
             time.sleep(0.5)
             while True:
                 a = np.argmax(Q[s, :])
-                s1, reward, done, _ = env.step(a)
+                s1, reward, done, _ = self.env.step(a)
                 s1 = minigrid_encoding_to_table(s1)
-
                 s = s1
 
-                env.render()
+                self.env.render()
                 time.sleep(1 / self.fps)
 
                 if done:
@@ -114,30 +100,26 @@ class QLearningWithTable(ReinforcementLearningAlgorithm):
             time.sleep(0.5)
 
     def evaluate(self):
-        env = FullyObsWrapper(self.env)
-
-        positions = env.grid.width * env.grid.height
-
-        Q = self.load()
+        self.model = self.load()
+        Q = self.model["q_table"]
 
         rewards = []
 
         for i in range(self.num_episodes + 1):
             if self.seed:
-                env.seed(self.seed)
-            s = env.reset()
+                self.env.seed(self.seed)
+            s = self.env.reset()
             s = minigrid_encoding_to_table(s)
 
             current_reward = 0
             done = False
 
             j = 0
-            # TODO: verify that positions * DIRECTIONS is a valid limit
-            while j < positions * DIRECTIONS:
+            while j < self.positions * DIRECTIONS:
                 j += 1
 
                 a = np.argmax(Q[s, :])
-                s1, reward, done, _ = env.step(a)
+                s1, reward, done, _ = self.env.step(a)
                 s1 = minigrid_encoding_to_table(s1)
 
                 current_reward += reward

@@ -1,13 +1,13 @@
+from os import listdir
+
 import gym
 import gym_minigrid  # noqa
 from loguru import logger
 from purls.algorithms.base import AlgorithmParameterError
 from purls.algorithms.q_table import QLearningWithTable
 from purls.utils.logs import error
-from os import listdir
 
 ALGORITHMS = {"q-table": QLearningWithTable}
-ENVIRONMENTS = {}
 
 
 def run(action, args):
@@ -18,17 +18,18 @@ def run(action, args):
             return 1
         try:
             env = gym.make(args.environment)
-        except gym.error.Error as err:
+        except gym.error.Error:
             error(f"Choose a valid enviroment!")
             return 1
 
-        files = [f[:-4] for f in listdir("models") if f != ".gitignore"]
-        if files and args.model not in files:
+        algo = ALGORITHMS[args.algorithm](env=env, args=args)
+
+        files = [f.strip(".pt") for f in listdir("models") if f != ".gitignore"]
+        if algo.model_name is not None and algo.model_name not in files:
             valid_model_names = ", ".join(files)
             error(f"Choose a valid model name: {valid_model_names}")
             return 1
 
-        algo = ALGORITHMS[args.algorithm](env=env, args=args)
         with logger.catch(reraise=True):
             if action == "train":
                 algo.train()
