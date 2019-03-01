@@ -65,11 +65,11 @@ def main():
         help="int:   if j > 0, save model every j:th episode",
     )
     p_train.add_argument(
-        "--model",
+        "--model-name",
         type=str,
         default=None,
-        metavar="model-name",
-        help="str:   use model-name used when (if) the model is saved",
+        metavar="name",
+        help="str:   save model as models/<name>.pt when (if) the model is saved",
     )
     p_train.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
@@ -80,9 +80,6 @@ def main():
         default=None,
         metavar="fps",
         help="int:   rendering delay = 1/fps + time to compute next action",
-    )
-    p_train.add_argument(
-        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
     )
     p_train.set_defaults(action="train")
 
@@ -102,11 +99,11 @@ def main():
         help="str:   minigrid environment env to use.",
     )
     p_visualize.add_argument(
-        "--model",
+        "--model-name",
         type=str,
         default=None,
-        metavar="model-name",
-        help="str:   use model-name used when loading the model to visualize",
+        metavar="name",
+        help="str:   load model from models/<name>.pt",
     )
     p_visualize.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
@@ -117,9 +114,6 @@ def main():
         default=None,
         metavar="fps",
         help="int:   rendering delay = 1/fps + time to compute next action",
-    )
-    p_visualize.add_argument(
-        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
     )
     p_visualize.set_defaults(action="visualize")
 
@@ -146,17 +140,14 @@ def main():
         help="int:   evaluate model for up to n episodes",
     )
     p_evaluate.add_argument(
-        "--model",
+        "--model-name",
         type=str,
         default=None,
-        metavar="model-name",
-        help="str:   use model-name used when loading the model to evaluate",
+        metavar="name",
+        help="str:   load model from models/<name>.pt",
     )
     p_evaluate.add_argument(
         "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
-    )
-    p_evaluate.add_argument(
-        "--fully-obs", action="store_true", help="not guaranteed to work with all algorithms!"
     )
     p_evaluate.set_defaults(action="evaluate")
 

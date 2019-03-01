@@ -1,4 +1,9 @@
+import os
 from abc import ABC, abstractmethod
+
+from torch import load, save
+
+from purls.utils.logs import debug
 
 
 class AlgorithmParameterError(Exception):
@@ -14,107 +19,59 @@ class ReinforcementLearningAlgorithm(ABC):
 
     When initializing a sub-class, try:
 
-    def __init__(self, env, args):
-        super().__init__(env, args, DEFAULTS)
-
-    where DEFAULTS is a dictionary with default values containing keys for
-    some parameters like "learning_rate", "discount_factor" and "episodes".
+    def __init__(self, args):
+        super().__init__(
+            args,
+            default_learning_rate=...,
+            default_discount_factor=...,
+            default_num_episodes=...,
+        )
 
     These default values will likely vary between different RL algorithms,
     hence why they need to be defined separately.
-
-    "fully_obs" is a special default value found in DEFAULTS that tells us if
-    that algorithm can be ran with minigrid FullyObsWrapper or not.
-
-    Please specify "fully_obs": "compatible" if the algorithm works with a fully
-    observable gridworld.
-
-    Please specify "fully_obs": required" if the algorithm will ONLY work with
-    a fully observable gridworld (like Q-table)
-
-    If the algorithm is not compatible with the FullyObsWrapper, you can specify "nope"
-    or any other string (except for compatible/required of course!)
-
     """
 
-    def __init__(self, env, args, defaults):
-        self.env = env
+    def __init__(self, args, default_learning_rate, default_discount_factor, default_num_episodes):
+        self.lr = getattr(args, "learning_rate", None) or default_learning_rate
+        self.y = getattr(args, "discount_factor", None) or default_discount_factor
+        self.num_episodes = getattr(args, "episodes", None) or default_num_episodes
+        self.render_interval = getattr(args, "render_interval", None) or 0
+        self.save_interval = getattr(args, "save_interval", None) or 0
+        self.model_name = getattr(args, "model_name", None)
+        self.fps = getattr(args, "fps", None) or 2
+        self.seed = getattr(args, "seed", None)
 
-        if "learning_rate" in args and args.learning_rate:
-            self.lr = args.learning_rate
-        else:
-            self.lr = defaults["learning_rate"]
+        if self.save_interval > 0 and self.model_name is None:
+            raise AlgorithmParameterError(
+                f"Save interval set to {self.save_interval} but no model name specified!"
+            )
 
-        if "discount_factor" in args and args.discount_factor:
-            self.y = args.discount_factor
-        else:
-            self.y = defaults["discount_factor"]
+        self.model = NotImplemented
 
-        if "episodes" in args and args.episodes:
-            self.num_episodes = args.episodes
-        else:
-            self.num_episodes = defaults["episodes"]
+    def save(self):
+        """
+        Save a model. Used by train at the interval specified by save_interval.
+        """
+        path = f"models/{self.model_name}.pt"
+        save(self.model, path)
+        debug(f"model saved in {path}")
 
-        if "render_interval" in args and args.render_interval:
-            self.render_interval = args.render_interval
-        else:
-            self.render_interval = 0
-
-        if "save_interval" in args and args.save_interval:
-            self.save_interval = args.save_interval
-        else:
-            self.save_interval = 0
-
-        if args.model:
-            self.model_name = args.model
-        else:
-            if self.save_interval > 0:
-                raise AlgorithmParameterError(
-                    f"Save interval set to {self.save_interval} but no model name specified!"
-                )
-            self.model_name = None
-
-        if "fps" in args and args.fps:
-            self.fps = args.fps
-        else:
-            self.fps = 2
-
-        if args.seed:
-            self.seed = args.seed
-        else:
-            self.seed = None
-
-        if args.fully_obs:
-            if defaults["fully_obs"] in ["compatible", "required"]:
-                self.fully_observable = True
-            else:
-                raise AlgorithmParameterError(
-                    f"This algorithm is not compatible with the FullyObs wrapper!"
-                )
-        else:
-            if defaults["fully_obs"] != "required":
-                self.fully_observable = False
-            else:
-                raise AlgorithmParameterError(f"This algorithm requires the FullyObs wrapper!")
+    def load(self):
+        """
+        Load a model. Used by visualize and evaluate to load a trained model.
+        """
+        files = [f.strip(".pt") for f in os.listdir("models") if f != ".gitignore"]
+        if self.model_name not in files:
+            valid_model_names = ", ".join(files)
+            raise AlgorithmParameterError(f"Choose a valid model name: {valid_model_names}")
+        path = f"models/{self.model_name}.pt"
+        debug(f"model loaded from {path}")
+        return load(path)
 
     @abstractmethod
     def train(self):
         """
         Train a model. Please respect save_interval, render_interval, seed etc.
-        """
-        pass
-
-    @abstractmethod
-    def save(self):
-        """
-        Save a model. Used by train at the interval specified by save_interval.
-        """
-        pass
-
-    @abstractmethod
-    def load(self):
-        """
-        Load a model. Used by visualize and evaluate to load a trained model.
         """
         pass
 
