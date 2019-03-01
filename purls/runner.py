@@ -23,13 +23,6 @@ def run(action, args):
             return 1
 
         algo = ALGORITHMS[args.algorithm](env=env, args=args)
-
-        files = [f.strip(".pt") for f in listdir("models") if f != ".gitignore"]
-        if algo.model_name is not None and algo.model_name not in files:
-            valid_model_names = ", ".join(files)
-            error(f"Choose a valid model name: {valid_model_names}")
-            return 1
-
         with logger.catch(reraise=True):
             if action == "train":
                 algo.train()

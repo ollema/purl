@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 
 from torch import load, save
@@ -59,6 +60,10 @@ class ReinforcementLearningAlgorithm(ABC):
         """
         Load a model. Used by visualize and evaluate to load a trained model.
         """
+        files = [f.strip(".pt") for f in os.listdir("models") if f != ".gitignore"]
+        if self.model_name not in files:
+            valid_model_names = ", ".join(files)
+            raise AlgorithmParameterError(f"Choose a valid model name: {valid_model_names}")
         path = f"models/{self.model_name}.pt"
         debug(f"model loaded from {path}")
         return load(path)
