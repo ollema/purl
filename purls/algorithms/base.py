@@ -1,14 +1,11 @@
 import os
+import time
 from abc import ABC, abstractmethod
 
 from torch import load, save
 
 from purls.utils.logs import debug
-
-
-class AlgorithmParameterError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+from purls.algorithms import AlgorithmError
 
 
 class ReinforcementLearningAlgorithm(ABC):
@@ -24,6 +21,9 @@ class ReinforcementLearningAlgorithm(ABC):
             args,
             default_learning_rate=...,
             default_discount_factor=...,
+            default_start_eps=...,
+            default_end_eps=...,
+            default_annealing_steps=...,
             default_num_episodes=...,
         )
 
@@ -31,21 +31,32 @@ class ReinforcementLearningAlgorithm(ABC):
     hence why they need to be defined separately.
     """
 
-    def __init__(self, args, default_learning_rate, default_discount_factor, default_num_episodes):
+    def __init__(
+        self,
+        env,
+        args,
+        default_learning_rate,
+        default_discount_factor,
+        default_start_eps,
+        default_end_eps,
+        default_annealing_steps,
+        default_num_episodes,
+    ):
+        self.env = env
         self.lr = getattr(args, "learning_rate", None) or default_learning_rate
         self.y = getattr(args, "discount_factor", None) or default_discount_factor
+        self.start_eps = getattr(args, "start_eps", None) or default_start_eps
+        self.end_eps = getattr(args, "end_eps", None) or default_end_eps
+        self.annealing_steps = getattr(args, "annealing_steps", None) or default_annealing_steps
         self.num_episodes = getattr(args, "episodes", None) or default_num_episodes
+
         self.render_interval = getattr(args, "render_interval", None) or 0
         self.save_interval = getattr(args, "save_interval", None) or 0
-        self.model_name = getattr(args, "model_name", None)
+        self.model_name = getattr(args, "model_name", None) or self._default_model_name()
         self.fps = getattr(args, "fps", None) or 2
         self.seed = getattr(args, "seed", None)
 
-        if self.save_interval > 0 and self.model_name is None:
-            raise AlgorithmParameterError(
-                f"Save interval set to {self.save_interval} but no model name specified!"
-            )
-
+        # TODO: make sure this errors out when a subclass does not define self.model
         self.model = NotImplemented
 
     def save(self):
@@ -63,7 +74,7 @@ class ReinforcementLearningAlgorithm(ABC):
         files = [f.strip(".pt") for f in os.listdir("models") if f != ".gitignore"]
         if self.model_name not in files:
             valid_model_names = ", ".join(files)
-            raise AlgorithmParameterError(f"Choose a valid model name: {valid_model_names}")
+            raise AlgorithmError(f"Choose a valid model name: {valid_model_names}")
         path = f"models/{self.model_name}.pt"
         debug(f"model loaded from {path}")
         return load(path)
@@ -88,3 +99,15 @@ class ReinforcementLearningAlgorithm(ABC):
         Evaluate a model's performance.
         """
         pass
+
+    def _default_model_name(self):
+        return f"{type(self).__name__}__{self.env.spec.id}__{time.strftime('%Y-%m-%d__%H-%M-%S')}"
+
+    subclasses = []
+
+    def __init_subclass__(cls, **kwargs):
+        """
+        Keep track of all subclasses of ReinforcementLearningAlgorithm
+        """
+        super().__init_subclass__(**kwargs)
+        cls.subclasses.append(cls)
