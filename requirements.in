@@ -2,6 +2,8 @@
 torch
 torchvision
 jupyter
+matplotlib
+adabound
 loguru
 
 black
