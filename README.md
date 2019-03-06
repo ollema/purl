@@ -23,7 +23,7 @@ pip install virtualenv
 pip install virtualenvwrapper
 ```
 
-**Note**: To get `matplotlib` to work on a Mac  with a virtual environment you have to use `venv` instead
+**Note**: To get `matplotlib` to work on a Mac with a virtual environment you have to use `venv` instead
 
 
 #### Setting up a virtual environment
