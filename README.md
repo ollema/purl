@@ -23,15 +23,29 @@ pip install virtualenv
 pip install virtualenvwrapper
 ```
 
+**Note**: To get `matplotlib` to work on a Mac with a virtual environment you have to use `venv` instead
+
+
 #### Setting up a virtual environment
 
 ```mkvirtualenv purl```
+
+or with venv:
+
+```python -m venv purl-venv```
 
 #### Installing Python dependencies
 
 First, switch to the virtual environment:
 
 ```workon purl```
+
+or with venv:
+
+```source purl-venv/bin/activate```
+
+**Note**: You can set up an alias in your shell to make the virtual environment more accessible, 
+e.g `alias actpurl='source /path/to/purl/purl-venv/bin/activate'`
 
 Then, install the dependencies by running:
 
