@@ -16,8 +16,9 @@ class ReinforcementLearningAlgorithm(ABC):
 
     When initializing a sub-class, try:
 
-    def __init__(self, args):
+    def __init__(self, env, args):
         super().__init__(
+            env,
             args,
             default_learning_rate=...,
             default_discount_factor=...,
@@ -49,6 +50,7 @@ class ReinforcementLearningAlgorithm(ABC):
         self.end_eps = getattr(args, "end_eps", None) or default_end_eps
         self.annealing_steps = getattr(args, "annealing_steps", None) or default_annealing_steps
         self.num_episodes = getattr(args, "episodes", None) or default_num_episodes
+        self.eps_decay = (self.start_eps - self.end_eps) / self.annealing_steps
 
         self.render_interval = getattr(args, "render_interval", None) or 0
         self.save_interval = getattr(args, "save_interval", None) or 0

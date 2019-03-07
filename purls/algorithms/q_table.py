@@ -81,8 +81,6 @@ class q_table(ReinforcementLearningAlgorithm):
                     f"Don't know how to handle this obeservation space{self.env.obeservation_space}"
                 )
 
-        self.eps_decay = (self.start_eps - self.end_eps) / self.annealing_steps
-
         self.model = {"q_table": np.zeros([self.q_table_length, self.env.action_space.n])}
 
     def train(self):
@@ -153,7 +151,7 @@ class q_table(ReinforcementLearningAlgorithm):
             self.save()
 
         debug("plotting reward over episodes")
-        matplotlib.rcParams["figure.dpi"] = 200
+        matplotlib.rcParams["figure.dpi"] = 100
         plt.plot(rewards)
         plt.plot(savgol_filter(rewards, 23, 3), "-r", linewidth=2.0)
         plt.title(self.model_name)
