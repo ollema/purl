@@ -48,17 +48,13 @@ class ReinforcementLearningAlgorithm(ABC):
         self.y = getattr(args, "discount_factor", None) or default_discount_factor
         self.start_eps = getattr(args, "start_eps", None) or default_start_eps
         self.end_eps = getattr(args, "end_eps", None) or default_end_eps
-        self.annealing_steps = (
-            getattr(args, "annealing_steps", None) or default_annealing_steps
-        )
+        self.annealing_steps = getattr(args, "annealing_steps", None) or default_annealing_steps
         self.num_episodes = getattr(args, "episodes", None) or default_num_episodes
         self.eps_decay = (self.start_eps - self.end_eps) / self.annealing_steps
 
         self.render_interval = getattr(args, "render_interval", None) or 0
         self.save_interval = getattr(args, "save_interval", None) or 0
-        self.model_name = (
-            getattr(args, "model_name", None) or self._default_model_name()
-        )
+        self.model_name = getattr(args, "model_name", None) or self._default_model_name()
         self.fps = getattr(args, "fps", None) or 2
         self.seed = getattr(args, "seed", None)
 

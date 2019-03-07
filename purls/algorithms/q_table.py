@@ -81,9 +81,7 @@ class q_table(ReinforcementLearningAlgorithm):
                     f"Don't know how to handle this obeservation space{self.env.obeservation_space}"
                 )
 
-        self.model = {
-            "q_table": np.zeros([self.q_table_length, self.env.action_space.n])
-        }
+        self.model = {"q_table": np.zeros([self.q_table_length, self.env.action_space.n])}
 
     def train(self):
         Q = self.model["q_table"]
@@ -118,9 +116,7 @@ class q_table(ReinforcementLearningAlgorithm):
 
                 # get next observation, reward and done from environment
                 next_obs, reward, done, _ = self.env.step(a)
-                next_obs = preprocess_obs(
-                    next_obs, self.q_table_length, self.discrete_obs_space
-                )
+                next_obs = preprocess_obs(next_obs, self.q_table_length, self.discrete_obs_space)
 
                 # construct a target
                 next_q_max = np.max(Q[next_obs, :])
@@ -143,9 +139,7 @@ class q_table(ReinforcementLearningAlgorithm):
             rewards.append(current_reward)
 
             if i % 100 == 0 and i != 0:
-                debug(
-                    f"episode {i:5d} finished - avg. reward: {np.average(rewards[-100:-1]):2f}"
-                )
+                debug(f"episode {i:5d} finished - avg. reward: {np.average(rewards[-100:-1]):2f}")
 
             if self.save_interval != 0 and i % self.save_interval == 0:
                 self.save()
