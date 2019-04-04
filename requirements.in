@@ -5,6 +5,9 @@ jupyter
 matplotlib
 adabound
 loguru
+tensorflow
+tensorboard
+tensorboardX
 
 black
 flake8
