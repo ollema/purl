@@ -152,6 +152,7 @@ def main():
         metavar="fps",
         help="int:   rendering delay = 1/fps + time to compute next action",
     )
+    p_train.add_argument("--tensorboard", action="store_true", help="bool:  use tensorboard")
     p_train.set_defaults(action="train")
 
     p_visualize = subp.add_parser("visualize")
