@@ -5,29 +5,34 @@
 #    pip-compile 
 #
 -e git+git://github.com/ollema/gym-minigrid.git#egg=gym-minigrid
+absl-py==0.7.1            # via tensorboard, tensorflow, tensorflow-estimator
 adabound==0.0.5
 ansimarkup==1.4.0         # via better-exceptions-fork, loguru
 appdirs==1.4.3            # via black
-attrs==18.2.0             # via black, jsonschema
+astor==0.7.1              # via tensorflow
+attrs==19.1.0             # via black, jsonschema
 backcall==0.1.0           # via ipython
 better-exceptions-fork==0.2.1.post6  # via loguru
-black==18.9b0
+black==19.3b0
 bleach==3.1.0             # via nbconvert
-certifi==2018.11.29       # via requests
+certifi==2019.3.9         # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via black, pip-tools
 colorama==0.4.1           # via ansimarkup, loguru
 cycler==0.10.0            # via matplotlib
-decorator==4.3.2          # via ipython, traitlets
+decorator==4.4.0          # via ipython, traitlets
 defusedxml==0.5.0         # via nbconvert
 entrypoints==0.3          # via flake8, nbconvert
-flake8==3.7.5
+flake8==3.7.7
 future==0.17.1            # via pyglet
-gym==0.11.0
+gast==0.2.2               # via tensorflow
+grpcio==1.19.0            # via tensorboard, tensorflow
+gym==0.12.1
+h5py==2.9.0               # via keras-applications
 idna==2.8                 # via requests
 ipykernel==5.1.0          # via ipywidgets, jupyter, jupyter-console, notebook, qtconsole
 ipython-genutils==0.2.0   # via nbformat, notebook, qtconsole, traitlets
-ipython==7.3.0            # via ipykernel, ipywidgets, jupyter-console
+ipython==7.4.0            # via ipykernel, ipywidgets, jupyter-console
 ipywidgets==7.4.2         # via jupyter
 jedi==0.13.3              # via ipython
 jinja2==2.10              # via nbconvert, notebook
@@ -36,48 +41,61 @@ jupyter-client==5.2.4     # via ipykernel, jupyter-console, notebook, qtconsole
 jupyter-console==6.0.0    # via jupyter
 jupyter-core==4.4.0       # via jupyter-client, nbconvert, nbformat, notebook, qtconsole
 jupyter==1.0.0
+keras-applications==1.0.7  # via tensorflow
+keras-preprocessing==1.0.9  # via tensorflow
 kiwisolver==1.0.1         # via matplotlib
 loguru==0.2.5
+markdown==3.1             # via tensorboard
 markupsafe==1.1.1         # via jinja2
 matplotlib==3.0.3
 mccabe==0.6.1             # via flake8
 mistune==0.8.4            # via nbconvert
+mock==2.0.0               # via tensorflow-estimator
 nbconvert==5.4.1          # via jupyter, notebook
 nbformat==4.4.0           # via ipywidgets, nbconvert, notebook
-notebook==5.7.4           # via jupyter, widgetsnbextension
-numpy==1.15.4             # via gym, matplotlib, scipy, torchvision
+notebook==5.7.8           # via jupyter, widgetsnbextension
+numpy==1.15.4             # via gym, h5py, keras-applications, keras-preprocessing, matplotlib, scipy, tensorboard, tensorboardx, tensorflow, tensorflow-estimator, torchvision
 pandocfilters==1.4.2      # via nbconvert
 parso==0.3.4              # via jedi
+pbr==5.1.3                # via mock
 pexpect==4.6.0            # via ipython
 pickleshare==0.7.5        # via ipython
-pillow==5.4.1             # via torchvision
-pip-tools==3.4.0
+pillow==6.0.0             # via torchvision
+pip-tools==3.5.0
 prometheus-client==0.6.0  # via notebook
 prompt-toolkit==2.0.9     # via ipython, jupyter-console
+protobuf==3.7.1           # via tensorboard, tensorboardx, tensorflow
 ptyprocess==0.6.0         # via pexpect, terminado
 pycodestyle==2.5.0        # via flake8
-pyflakes==2.1.0           # via flake8
+pyflakes==2.1.1           # via flake8
 pyglet==1.3.2             # via gym
 pygments==2.3.1           # via better-exceptions-fork, ipython, jupyter-console, nbconvert, qtconsole
 pyparsing==2.3.1          # via matplotlib
-pyqt5-sip==4.19.14        # via pyqt5
-pyqt5==5.12
+pyqt5-sip==4.19.15        # via pyqt5
+pyqt5==5.12.1
 pyrsistent==0.14.11       # via jsonschema
 python-dateutil==2.8.0    # via jupyter-client, matplotlib
-pyzmq==18.0.0             # via jupyter-client, notebook
+pyzmq==18.0.1             # via jupyter-client, notebook
 qtconsole==4.4.3          # via jupyter
 requests==2.21.0          # via gym
 scipy==1.2.1              # via gym
 send2trash==1.5.0         # via notebook
-six==1.12.0               # via bleach, cycler, gym, jsonschema, pip-tools, prompt-toolkit, pyrsistent, python-dateutil, torchvision, traitlets
-terminado==0.8.1          # via notebook
+six==1.12.0               # via absl-py, bleach, cycler, grpcio, gym, h5py, jsonschema, keras-preprocessing, mock, pip-tools, prompt-toolkit, protobuf, pyrsistent, python-dateutil, tensorboard, tensorboardx, tensorflow, tensorflow-estimator, torchvision, traitlets
+tensorboard==1.13.1
+tensorboardx==1.6
+tensorflow-estimator==1.13.0  # via tensorflow
+tensorflow==1.13.1
+termcolor==1.1.0          # via tensorflow
+terminado==0.8.2          # via notebook
 testpath==0.4.2           # via nbconvert
 toml==0.10.0              # via black
 torch==1.0.1.post2
-torchvision==0.2.2.post2
-tornado==6.0              # via ipykernel, jupyter-client, notebook, terminado
+torchvision==0.2.2.post3
+tornado==6.0.2            # via ipykernel, jupyter-client, notebook, terminado
 traitlets==4.3.2          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, nbconvert, nbformat, notebook, qtconsole
 urllib3==1.24.1           # via requests
 wcwidth==0.1.7            # via prompt-toolkit
 webencodings==0.5.1       # via bleach
+werkzeug==0.15.2          # via tensorboard
+wheel==0.33.1             # via tensorboard, tensorflow
 widgetsnbextension==3.4.2  # via ipywidgets

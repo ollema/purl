@@ -84,10 +84,8 @@ class q_network(ReinforcementLearningAlgorithm):
             # for other enviroments, we don't know how in_features is calculated from the obs space
             else:
                 raise RuntimeError(
-                    f"Don't know how to handle this obeservation space{self.env.obeservation_space}"
+                    f"Don't know how to handle this observation space{self.env.obeservation_space}"
                 )
-
-        self.eps_decay = (self.start_eps - self.end_eps) / self.annealing_steps
 
         self.model = {"q_network": Net(self.in_features, self.env.action_space).to(device)}
 
