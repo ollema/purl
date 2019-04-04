@@ -1,13 +1,13 @@
-import sys  # noqa
-import time  # noqa
+import os
+import sys
 
 import gym
 import gym_minigrid  # noqa
-import matplotlib.pyplot as plt  # noqa
-import numpy as np  # noqa
 
 # from gym_minigrid.wrappers import FullyObsWrapper
-from purls.utils.logs import debug, info, success
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "purls"))
+from utils.logs import debug, info, success  # noqa
+
 
 env = gym.make("MiniGrid-LavaCrossingS11N5-v0")
 # env = gym.make("MiniGrid-ObstructedMaze-2Q-v0")
@@ -37,9 +37,7 @@ while True:
 
     env.render()
     # print(obs)
-    print(
-        f"\n----------------------------------------------------------------{env.step_count}--------------------------------------------------------------"
-    )
+    print("\n" + "-" * 50, env.step_count, "-" * 50)
     debug(f"Obs:\n{obs['image']}")
     debug(f"Obs shape: {obs['image'].shape}")
     debug(f"Direction: {obs['direction']}")
