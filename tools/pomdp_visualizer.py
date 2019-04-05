@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__
 from utils.logs import debug, info, success  # noqa
 
 
-env = gym.make("MiniGrid-LavaCrossingS11N5-v0")
+env = gym.make("MiniGrid-Empty-5x5-v0")
 # env = gym.make("MiniGrid-ObstructedMaze-2Q-v0")
 # env = gym.make("MiniGrid-LockedRoom-v0")
 # env = gym.make("MiniGrid-SimpleCrossingS9N2-v0")
