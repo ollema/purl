@@ -20,6 +20,7 @@ WARMUP = 10000
 TAU = 0.001
 MEMORY_SIZE = 10000
 MOMENTUM = 0.95
+DOUBLE = True
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -179,15 +180,25 @@ class dqn(ReinforcementLearningAlgorithm):
                             batch.reward, device=device, dtype=torch.float
                         ).unsqueeze(1)
 
-                        q = target_net(batch_state).gather(1, batch_action)
+                        q = policy_net(batch_state).gather(1, batch_action)
 
                         # construct a target (compare this to a label in supervised learning)
-                        # max q value in the next observation * discount factor + the reward
-                        next_q = target_net(batch_next_state)
-                        next_q_max = next_q.max(1)[0].unsqueeze(1)
+                        if DOUBLE:
+                            # argmax of the output from policy_net
+                            next_state_actions = policy_net(batch_next_state).max(1)[1].unsqueeze(1)
+                            next_q = (
+                                target_net(batch_next_state)
+                                .gather(1, next_state_actions)
+                                .unsqueeze(1)
+                            )
+                            target_q = next_q * self.y + batch_reward
+                        else:
+                            # max q value in the next observation * discount factor + the reward
+                            next_q = target_net(batch_next_state)
+                            next_q_max = next_q.max(1)[0].unsqueeze(1)
 
-                        # target_q = q.detach().clone()  # clone an independant
-                        target_q = next_q_max * self.y + batch_reward
+                            # target_q = q.detach().clone()  # clone an independant
+                            target_q = next_q_max * self.y + batch_reward
 
                         # compute loss
                         loss = criterion(q, target_q)
