@@ -16,7 +16,7 @@ from purls.utils.logs import debug
 
 BATCH_SIZE = 32
 TRAIN_FREQ = 4
-WARMUP = 10000
+WARMUP = 32
 TAU = 0.001
 MEMORY_SIZE = 10000
 MOMENTUM = 0.95
@@ -111,11 +111,11 @@ class dqn(ReinforcementLearningAlgorithm):
             env,
             args,
             # default values for this algorithm
-            default_learning_rate=0.001,
+            default_learning_rate=0.01,
             default_discount_factor=0.99,
             default_start_eps=1,
             default_end_eps=0.1,
-            default_annealing_steps=25000,
+            default_annealing_steps=400,
             default_num_episodes=110_000,
         )
 
@@ -132,7 +132,7 @@ class dqn(ReinforcementLearningAlgorithm):
         policy_net.train()
         target_net.train()
 
-        criterion = F.mse_loss
+        criterion = F.smooth_l1_loss
         optimizer = optim.RMSprop(policy_net.parameters(), lr=self.lr, momentum=MOMENTUM)
         memory = ReplayMemory(MEMORY_SIZE)
         writer = SummaryWriter(comment=f"-{self.model_name}")
@@ -166,15 +166,28 @@ class dqn(ReinforcementLearningAlgorithm):
                     next_obs, reward, done, _ = self.env.step(action)
                     next_obs = preprocess_obs(next_obs)
 
+                    if done:
+                        next_obs = None
+
                     memory.push(obs, action, next_obs, reward)
 
                     if i > WARMUP and i % TRAIN_FREQ == 0:
                         transitions = memory.sample(BATCH_SIZE)
                         batch = Transition(*zip(*transitions))
 
+                        non_final_mask = torch.tensor(
+                            tuple(map(lambda s: s is not None, batch.next_state)),
+                            device=device,
+                            dtype=torch.uint8,
+                        )
+
+                        non_final_next_states = torch.stack(
+                            [s for s in batch.next_state if s is not None]
+                        )
+
                         batch_state = torch.stack(batch.state)
                         batch_action = torch.tensor(batch.action, device=device).unsqueeze(1)
-                        batch_next_state = torch.stack(batch.next_state)
+                        # batch_next_state = torch.stack(batch.next_state)
                         batch_reward = torch.tensor(
                             batch.reward, device=device, dtype=torch.float
                         ).unsqueeze(1)
@@ -183,11 +196,17 @@ class dqn(ReinforcementLearningAlgorithm):
 
                         # construct a target (compare this to a label in supervised learning)
                         # max q value in the next observation * discount factor + the reward
-                        next_q = target_net(batch_next_state)
-                        next_q_max = next_q.max(1)[0].unsqueeze(1)
+                        next_state_values = torch.zeros(BATCH_SIZE, device=device).unsqueeze(1)
+
+                        next_state_values[non_final_mask] = (
+                            target_net(non_final_next_states).max(1)[0].unsqueeze(1)
+                        )
+                        print(next_state_values)
+
+                        # next_q_max = next_state_values.max(1)[0].unsqueeze(1)
 
                         # target_q = q.detach().clone()  # clone an independant
-                        target_q = next_q_max * self.y + batch_reward
+                        target_q = next_state_values * self.y + batch_reward
 
                         # compute loss
                         loss = criterion(q, target_q)
