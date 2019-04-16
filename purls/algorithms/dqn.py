@@ -14,10 +14,10 @@ from gym_minigrid.envs import MiniGridEnv
 from purls.algorithms.base import ReinforcementLearningAlgorithm
 from purls.utils.logs import debug
 
-BATCH_SIZE = 32
+BATCH_SIZE = 4
 TRAIN_FREQ = 4
-WARMUP = 32
-TAU = 0.001
+WARMUP = 1000
+TAU = 0.01
 MEMORY_SIZE = 10000
 MOMENTUM = 0.95
 
@@ -29,7 +29,9 @@ Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"
 
 def preprocess_obs(obs):
     # return a torch tensor ~ W x H x C -> C x W x H
-    return torch.tensor(np.transpose(obs["image"], (2, 0, 1)), dtype=torch.float, device=device)
+    return torch.tensor(
+        np.transpose(obs["image"], (2, 0, 1)), dtype=torch.float, device=device
+    )
 
 
 class Tracker:
@@ -115,7 +117,7 @@ class dqn(ReinforcementLearningAlgorithm):
             default_discount_factor=0.99,
             default_start_eps=1,
             default_end_eps=0.1,
-            default_annealing_steps=400,
+            default_annealing_steps=1000,
             default_num_episodes=110_000,
         )
 
@@ -124,7 +126,10 @@ class dqn(ReinforcementLearningAlgorithm):
         # really Discrete(7) for this env but we don't need the pick up, drop... actions
         self.env.action_space = Discrete(3)
 
-        self.model = {"policy_network": Net().to(device), "target_network": Net().to(device)}
+        self.model = {
+            "policy_network": Net().to(device),
+            "target_network": Net().to(device),
+        }
 
     def train(self):
         policy_net = self.model["policy_network"]
@@ -133,7 +138,9 @@ class dqn(ReinforcementLearningAlgorithm):
         target_net.train()
 
         criterion = F.smooth_l1_loss
-        optimizer = optim.RMSprop(policy_net.parameters(), lr=self.lr, momentum=MOMENTUM)
+        optimizer = optim.RMSprop(
+            policy_net.parameters(), lr=self.lr, momentum=MOMENTUM
+        )
         memory = ReplayMemory(MEMORY_SIZE)
         writer = SummaryWriter(comment=f"-{self.model_name}")
         eps = self.start_eps
@@ -186,22 +193,28 @@ class dqn(ReinforcementLearningAlgorithm):
                         )
 
                         batch_state = torch.stack(batch.state)
-                        batch_action = torch.tensor(batch.action, device=device).unsqueeze(1)
+                        batch_action = torch.tensor(
+                            batch.action, device=device
+                        ).unsqueeze(1)
                         # batch_next_state = torch.stack(batch.next_state)
                         batch_reward = torch.tensor(
                             batch.reward, device=device, dtype=torch.float
                         ).unsqueeze(1)
 
-                        q = target_net(batch_state).gather(1, batch_action)
+                        # print(type(policy_net(batch_state)))
+
+                        q = policy_net(batch_state).gather(1, batch_action)
 
                         # construct a target (compare this to a label in supervised learning)
                         # max q value in the next observation * discount factor + the reward
-                        next_state_values = torch.zeros(BATCH_SIZE, device=device).unsqueeze(1)
+                        next_state_values = torch.zeros(
+                            BATCH_SIZE, device=device
+                        ).unsqueeze(1)
 
                         next_state_values[non_final_mask] = (
-                            target_net(non_final_next_states).max(1)[0].unsqueeze(1)
+                            policy_net(non_final_next_states).max(1)[0].unsqueeze(1)
                         )
-                        print(next_state_values)
+                        # print(next_state_values)
 
                         # next_q_max = next_state_values.max(1)[0].unsqueeze(1)
 
@@ -217,20 +230,25 @@ class dqn(ReinforcementLearningAlgorithm):
                         optimizer.step()
 
                     if i > WARMUP:
-                        policy_state = policy_net.state_dict()
-                        target_state = target_net.state_dict()
-                        for k, v in policy_state.items():
-                            target_state[k] = target_state[k] * (1 - TAU) + TAU * v
-                        target_net.load_state_dict(target_state)
+                        # policy_state = policy_net.state_dict()
+                        # target_state = target_net.state_dict()
+                        # for k, v in policy_state.items():
+                        #     target_state[k] = target_state[k] * (1 - TAU) + TAU * v
+                        # target_net.load_state_dict(target_state)
 
-                        # TODO: Revert if needed - do the below if i % (1/TAU) == 0
-                        # target_net.load_state_dict(policy_net.state_dict())
+                        # TODO: Revert if needed - do the below
+                        if i % (1 / TAU) == 0:
+                            target_net.load_state_dict(policy_net.state_dict())
 
                     # update variables for next iteration
                     current_reward += reward
                     obs = next_obs
 
-                    if i > WARMUP and self.render_interval != 0 and i % self.render_interval == 0:
+                    if (
+                        i > WARMUP
+                        and self.render_interval != 0
+                        and i % self.render_interval == 0
+                    ):
                         self.env.render()
                         time.sleep(1 / self.fps)
 
