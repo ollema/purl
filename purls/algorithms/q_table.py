@@ -58,7 +58,7 @@ class q_table(ReinforcementLearningAlgorithm):
             default_start_eps=0.5,
             default_end_eps=0.05,
             default_annealing_steps=2500,
-            default_num_episodes=4000,
+            default_num_updates=4000,
         )
 
         try:
@@ -89,7 +89,7 @@ class q_table(ReinforcementLearningAlgorithm):
         eps = self.start_eps
         rewards = []
 
-        for i in range(self.num_episodes + 1):
+        for i in range(1, self.max_num_updates + 1):
             # reduce chance for random action
             if eps > self.end_eps:
                 eps -= self.eps_decay
@@ -144,7 +144,7 @@ class q_table(ReinforcementLearningAlgorithm):
             if self.save_interval != 0 and i % self.save_interval == 0:
                 self.save()
 
-        success(f"all {self.num_episodes:5d} episodes finished!")
+        success(f"all {self.max_num_updates:5d} episodes finished!")
         info(f"reward for the final episode: {rewards[-1]:2f}")
 
         if self.save_interval != 0:
@@ -185,35 +185,3 @@ class q_table(ReinforcementLearningAlgorithm):
                 if done:
                     break
             time.sleep(0.5)
-
-    def evaluate(self):
-        self.model = self.load()
-        Q = self.model["q_table"]
-
-        rewards = []
-
-        for i in range(self.num_episodes + 1):
-            if self.seed:
-                self.env.seed(self.seed)
-            s = self.env.reset()
-            s = preprocess_obs(s, self.q_table_length, self.discrete_obs_space)
-
-            current_reward = 0
-            done = False
-
-            while True:
-                a = np.argmax(Q[s, :])
-                s1, reward, done, _ = self.env.step(a)
-                s1 = preprocess_obs(s, self.q_table_length, self.discrete_obs_space)
-
-                current_reward += reward
-                s = s1
-
-                if done:
-                    break
-
-            rewards.append(current_reward)
-
-        success(f"all {self.num_episodes:5d} episodes finished!")
-        avg_reward = np.average(rewards)
-        info(f"average reward: {avg_reward:2f}")

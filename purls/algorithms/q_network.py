@@ -64,7 +64,7 @@ class q_network(ReinforcementLearningAlgorithm):
             default_start_eps=0.5,
             default_end_eps=0.05,
             default_annealing_steps=2500,
-            default_num_episodes=4000,
+            default_num_updates=4000,
         )
 
         try:
@@ -101,7 +101,7 @@ class q_network(ReinforcementLearningAlgorithm):
         eps = self.start_eps
         rewards = []
 
-        for i in range(self.num_episodes + 1):
+        for i in range(1, self.max_num_updates + 1):
             # reduce chance for random action
             if eps > self.end_eps:
                 eps -= self.eps_decay
@@ -160,13 +160,13 @@ class q_network(ReinforcementLearningAlgorithm):
 
             rewards.append(current_reward)
 
-            if i % 100 == 0 and i != 0:
+            if i % 100 == 0:
                 debug(f"episode {i:5d} finished - avg. reward: {np.average(rewards[-100:-1]):2f}")
 
             if self.save_interval != 0 and i % self.save_interval == 0:
                 self.save()
 
-        success(f"all {self.num_episodes:5d} episodes finished!")
+        success(f"all {self.max_num_updates:5d} episodes finished!")
         info(f"reward for the final episode: {rewards[-1]:2f}")
 
         if self.save_interval != 0:
@@ -186,7 +186,7 @@ class q_network(ReinforcementLearningAlgorithm):
         q_net = self.model["q_network"]
         q_net.eval()
 
-        for i in range(self.num_episodes + 1):
+        for i in range(self.max_num_updates + 1):
             if self.seed:
                 self.env.seed(self.seed)
             obs = self.env.reset()
@@ -208,36 +208,3 @@ class q_network(ReinforcementLearningAlgorithm):
                 if done:
                     break
             time.sleep(0.5)
-
-    def evaluate(self):
-        self.model = self.load()
-        q_net = self.model["q_network"]
-        q_net.eval()
-
-        rewards = []
-
-        for i in range(self.num_episodes + 1):
-            if self.seed:
-                self.env.seed(self.seed)
-            obs = self.env.reset()
-            obs = preprocess_obs(obs, self.in_features, self.discrete_obs_space)
-
-            current_reward = 0
-            done = False
-
-            while True:
-                a = q_net(obs.unsqueeze(0)).argmax().item()
-                next_obs, reward, done, _ = self.env.step(a)
-                next_obs = preprocess_obs(next_obs, self.in_features, self.discrete_obs_space)
-
-                current_reward += reward
-                obs = next_obs
-
-                if done:
-                    break
-
-            rewards.append(current_reward)
-
-        success(f"all {self.num_episodes:5d} episodes finished!")
-        avg_reward = np.average(rewards)
-        info(f"average reward: {avg_reward:2f}")
