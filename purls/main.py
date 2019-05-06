@@ -20,6 +20,7 @@ def run(action, args):
     for algorithm in ReinforcementLearningAlgorithm.subclasses:
         debug(algorithm.__name__)
         algorithms.update({algorithm.__name__: algorithm})
+    debug("")
 
     try:
         if args.algorithm not in algorithms:
@@ -30,11 +31,7 @@ def run(action, args):
             env = gym.make(args.environment)
         except gym.error.Error:
             valid_environments = "\n".join(
-                [
-                    env.id
-                    for env in gym.envs.registry.all()
-                    if env.id.startswith("MiniGrid") or env.id.startswith("FrozenLake")
-                ]
+                [env.id for env in gym.envs.registry.all() if env.id.startswith("MiniGrid")]
             )
             error(f"choose a valid gym enviroment:\n{valid_environments}")
             return 1
@@ -45,8 +42,6 @@ def run(action, args):
                 algo.train()
             if action == "visualize":
                 algo.visualize()
-            if action == "evaluate":
-                algo.evaluate()
 
     except AlgorithmError as e:
         error(e.msg)
@@ -115,11 +110,11 @@ def main():
         help="float: decay epsilon over as steps.",
     )
     p_train.add_argument(
-        "--episodes",
+        "--updates",
         type=int,
         default=None,
         metavar="n",
-        help="int:   train model for up to n episodes",
+        help="int:   train model for up to n updates",
     )
     p_train.add_argument(
         "--render-interval",
@@ -189,40 +184,6 @@ def main():
     )
     p_visualize.set_defaults(action="visualize")
 
-    p_evaluate = subp.add_parser("evaluate")
-    p_evaluate.add_argument(
-        "--algorithm",
-        type=str,
-        required=True,
-        metavar="algo",
-        help="str:   reinforcement learning algorithm algo to use.",
-    )
-    p_evaluate.add_argument(
-        "--environment",
-        type=str,
-        required=True,
-        metavar="env",
-        help="str:   minigrid environment env to use.",
-    )
-    p_evaluate.add_argument(
-        "--episodes",
-        type=int,
-        default=None,
-        metavar="n",
-        help="int:   evaluate model for up to n episodes",
-    )
-    p_evaluate.add_argument(
-        "--model-name",
-        type=str,
-        default=None,
-        metavar="name",
-        help="str:   load model from models/<name>.pt",
-    )
-    p_evaluate.add_argument(
-        "--seed", type=int, default=None, metavar="seed", help="int:   seed used for all randomness"
-    )
-    p_evaluate.set_defaults(action="evaluate")
-
     args = p.parse_args()
 
     fmt = get_format(args.log_time_stamps)
@@ -230,8 +191,8 @@ def main():
     logger.configure(**config)
 
     if not hasattr(args, "action"):
-        error("You need to select a subcommand {train, visualize, evaluate}")
-        info("\n" + p_train.format_usage() + p_visualize.format_usage() + p_evaluate.format_usage())
+        error("You need to select a subcommand {train, visualize}")
+        info("\n" + p_train.format_usage() + p_visualize.format_usage())
         return 1
     try:
         result = run(args.action, args)

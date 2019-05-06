@@ -1,15 +1,6 @@
 # purl
 **P**athfinding **U**sing **R**einforcement **L**earning
 
-
-
-## Features of `purl`
-
-* It has cool name!
-* ...
-
-
-
 ## Getting Started
 ### Prerequisites
 
@@ -44,7 +35,7 @@ or with venv:
 
 ```source purl-venv/bin/activate```
 
-**Note**: You can set up an alias in your shell to make the virtual environment more accessible, 
+**Note**: You can set up an alias in your shell to make the virtual environment more accessible,
 e.g `alias actpurl='source /path/to/purl/purl-venv/bin/activate'`
 
 Then, install the dependencies by running:
@@ -75,14 +66,6 @@ To visualize a model, run:
 
 ```
 ./purl vizualize
-```
-
-### `evaluate`
-
-To evaluate a model, run:
-
-```
-./purl evaluate
 ```
 
 

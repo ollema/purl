@@ -116,7 +116,7 @@ class dqn(ReinforcementLearningAlgorithm):
             default_start_eps=1,
             default_end_eps=0.1,
             default_annealing_steps=25000,
-            default_num_episodes=110_000,
+            default_num_updates=110_000,
         )
 
         # for MiniGrid environments
@@ -138,8 +138,9 @@ class dqn(ReinforcementLearningAlgorithm):
         writer = SummaryWriter(comment=f"-{self.model_name}")
         eps = self.start_eps
 
+        # TODO: use a tracker from utils.trackers!
         with Tracker(writer) as tracker:
-            for i in range(self.num_episodes + 1):
+            for i in range(1, self.max_num_updates + 1):
                 # reduce chance for random action
                 if i > WARMUP and eps > self.end_eps:
                     eps -= self.eps_decay
@@ -227,7 +228,4 @@ class dqn(ReinforcementLearningAlgorithm):
             self.save()
 
     def visualize(self):
-        pass
-
-    def evaluate(self):
         pass
