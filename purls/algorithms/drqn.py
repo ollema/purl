@@ -16,10 +16,10 @@ from purls.utils.logs import debug
 
 BATCH_SIZE = 4
 TRACE_LENGTH = 4
-TRAIN_FREQ = 4
-WARMUP = 1000
+TRAIN_FREQ = 8
+WARMUP = 10000
 TAU = 0.01
-MEMORY_SIZE = 10000
+MEMORY_SIZE = 50000
 MOMENTUM = 0.95
 
 
@@ -127,8 +127,8 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(3, 16, 2)
         self.conv2 = nn.Conv2d(16, 32, 2)
         self.conv3 = nn.Conv2d(32, 64, 2)
-        self.fc1 = nn.Linear(4 * 4 * 64, 2 * 4 * 64)
-        self.fc2 = nn.LSTMCell(2 * 4 * 64, 3)
+        self.fc1 = nn.LSTMCell(4 * 4 * 64, 2 * 4 * 64)
+        self.fc2 = nn.Linear(2 * 4 * 64, 3)
 
     def forward(self, x: torch.Tensor):
         x = F.relu(self.conv1(x))
@@ -136,8 +136,8 @@ class Net(nn.Module):
         x = F.relu(self.conv3(x))
 
         x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)[0]
+        x = F.relu(self.fc1(x)[0])
+        x = self.fc2(x)
         return x
 
 
@@ -147,11 +147,11 @@ class drqn(ReinforcementLearningAlgorithm):
             env,
             args,
             # default values for this algorithm
-            default_learning_rate=0.01,
+            default_learning_rate=0.1,
             default_discount_factor=0.99,
             default_start_eps=1,
             default_end_eps=0.1,
-            default_annealing_steps=1000,
+            default_annealing_steps=10000,
             default_num_episodes=110_000,
         )
 
@@ -171,14 +171,13 @@ class drqn(ReinforcementLearningAlgorithm):
         policy_net.train()
         target_net.train()
 
-        criterion = F.smooth_l1_loss
+        criterion = F.mse_loss
         optimizer = optim.RMSprop(
             policy_net.parameters(), lr=self.lr, momentum=MOMENTUM
         )
         memory = EpisodeMemory(MEMORY_SIZE)
         writer = SummaryWriter(comment=f"-{self.model_name}")
         eps = self.start_eps
-        temp_memory = ReplayMemory(50)
 
         with Tracker(writer) as tracker:
             for i in range(self.num_episodes + 1):
@@ -193,10 +192,9 @@ class drqn(ReinforcementLearningAlgorithm):
 
                 current_reward = 0
                 done = False
-                ep_length = 0
-                temp_memory = ReplayMemory(50)
+                temp_memory = ReplayMemory(100)
 
-                while ep_length < 50:
+                while True:
                     # greedy-epsilon
                     if np.random.rand(1) < eps:
                         # sample random action from action space
@@ -221,51 +219,53 @@ class drqn(ReinforcementLearningAlgorithm):
                     if i > WARMUP and i % TRAIN_FREQ == 0:
                         traces = memory.sample(BATCH_SIZE, TRACE_LENGTH)
 
-                        batch = Transition(*zip(*traces[0]))
+                        for trace in traces:
+                            batch = Transition(*zip(*trace))
+                            trace_length = len(batch)
 
-                        non_final_mask = torch.tensor(
-                            tuple(map(lambda s: s is not None, batch.next_state)),
-                            device=device,
-                            dtype=torch.uint8,
-                        )
+                            non_final_mask = torch.tensor(
+                                tuple(map(lambda s: s is not None, batch.next_state)),
+                                device=device,
+                                dtype=torch.uint8,
+                            )
 
-                        non_final_next_states = torch.stack(
-                            [s for s in batch.next_state if s is not None]
-                        )
+                            non_final_next_states = torch.stack(
+                                [s for s in batch.next_state if s is not None]
+                            )
 
-                        batch_state = torch.stack(batch.state)
-                        batch_action = torch.tensor(
-                            batch.action, device=device
-                        ).unsqueeze(1)
-                        # batch_next_state = torch.stack(batch.next_state)
-                        batch_reward = torch.tensor(
-                            batch.reward, device=device, dtype=torch.float
-                        ).unsqueeze(1)
+                            batch_state = torch.stack(batch.state)
+                            batch_action = torch.tensor(
+                                batch.action, device=device
+                            ).unsqueeze(1)
+                            # batch_next_state = torch.stack(batch.next_state)
+                            batch_reward = torch.tensor(
+                                batch.reward, device=device, dtype=torch.float
+                            ).unsqueeze(1)
 
-                        q = policy_net(batch_state).gather(1, batch_action)
+                            q = policy_net(batch_state).gather(1, batch_action)
 
-                        # construct a target (compare this to a label in supervised learning)
-                        # max q value in the next observation * discount factor + the reward
-                        next_state_values = torch.zeros(
-                            BATCH_SIZE, device=device
-                        ).unsqueeze(1)
+                            # construct a target (compare this to a label in supervised learning)
+                            # max q value in the next observation * discount factor + the reward
+                            next_state_values = torch.zeros(
+                                trace_length, device=device
+                            ).unsqueeze(1)
 
-                        next_state_values[non_final_mask] = (
-                            policy_net(non_final_next_states).max(1)[0].unsqueeze(1)
-                        )
+                            next_state_values[non_final_mask] = (
+                                policy_net(non_final_next_states).max(1)[0].unsqueeze(1)
+                            )
 
-                        # next_q_max = next_state_values.max(1)[0].unsqueeze(1)
+                            # next_q_max = next_state_values.max(1)[0].unsqueeze(1)
 
-                        # target_q = q.detach().clone()  # clone an independant
-                        target_q = next_state_values * self.y + batch_reward
+                            # target_q = q.detach().clone()  # clone an independant
+                            target_q = next_state_values * self.y + batch_reward
 
-                        # compute loss
-                        loss = criterion(q, target_q)
+                            # compute loss
+                            loss = criterion(q, target_q)
 
-                        # optimize: backprop and update weights
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
+                            # optimize: backprop and update weights
+                            optimizer.zero_grad()
+                            loss.backward()
+                            optimizer.step()
 
                     if i > WARMUP:
                         # policy_state = policy_net.state_dict()
