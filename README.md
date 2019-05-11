@@ -1,6 +1,14 @@
 # purl
 **P**athfinding **U**sing **R**einforcement **L**earning
 
+## Algorithms
+### MDP (using the `FullyObsWrapper`)
+* **Q-table**
+* **Q-network**
+### POMDP
+* **PPO**
+* **DQN** (with the Double DQN extension) - work in progress, not currently working as intended
+
 ## Getting Started
 ### Prerequisites
 
@@ -21,7 +29,7 @@ pip install virtualenvwrapper
 
 ```mkvirtualenv purl```
 
-or with venv:
+or with `venv`:
 
 ```python -m venv purl-venv```
 
@@ -31,7 +39,7 @@ First, switch to the virtual environment:
 
 ```workon purl```
 
-or with venv:
+or with `venv`:
 
 ```source purl-venv/bin/activate```
 
@@ -50,7 +58,7 @@ or if you have `pip-sync` installed:
 
 ## Running `purl`
 
-There are three main subcommands to PURL
+There are two main subcommands to PURL
 
 ### `train`
 
@@ -58,6 +66,12 @@ To train a model, run:
 
 ```
 ./purl train
+```
+
+For example, to train a model using the PPO algorithm on the `MiniGrid-LavaCrossingS9N1-v0` environment, use the following arguments:
+
+```
+./purl train --algorithm ppo --environment MiniGrid-LavaCrossingS9N1-v0
 ```
 
 ### `visualize`
@@ -85,6 +99,7 @@ You then update the `requirements.txt`-file by running
 ## Built With
 
 * [gym-minigrid](https://github.com/maximecb/gym-minigrid) - Minimalistic gridworld environment for OpenAI Gym
+* [PyTorch](https://github.com/pytorch/pytorch) - Tensors and Dynamic neural networks in Python
 
 
 
@@ -102,13 +117,3 @@ You then update the `requirements.txt`-file by running
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
-
-
-
-## Acknowledgments
-
-* Blockchain
-* Internet of Things
-* AI
-* Machine Learning
-* Cloud Computing
