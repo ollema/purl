@@ -8,6 +8,7 @@
 ### POMDP
 * **PPO**
 * **DQN** (with the Double DQN extension) - work in progress, not currently working as intended
+* **DRQN**  - work in progress, not currently working as intended
 
 ## Getting Started
 ### Prerequisites
