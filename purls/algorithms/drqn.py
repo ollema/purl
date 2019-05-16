@@ -20,7 +20,7 @@ TRAIN_FREQ = 8
 WARMUP = 1000
 TAU = 0.01
 MEMORY_SIZE = 1000
-MOMENTUM = 0.95
+MOMENTUM = 0.99
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,12 +66,15 @@ class Tracker:
 
 
 class ReplayMemory:
+    """Circular buffer of Transitions, used in training."""
+
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
         self.position = 0
 
     def push(self, *args):
+        """Add Transition to the buffer."""
         if len(self.memory) < self.capacity:
             self.memory.append(None)
         self.memory[self.position] = Transition(*args)
@@ -83,15 +86,13 @@ class ReplayMemory:
     def __len__(self):
         return len(self.memory)
 
-    def clear(self):
-        self.memory = []
-        self.position = 0
-
     def __getitem__(self, key):
         return self.memory[key]
 
 
 class EpisodeMemory:
+    """A circular buffer of complete episodes, i.e. sequences of Transitions."""
+
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
@@ -104,10 +105,12 @@ class EpisodeMemory:
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, trace_len):
+        """Returns a batch of traces from randomly selected episodes"""
         episodes = random.sample(self.memory, batch_size)
         traces = []
         for episode in episodes:
             ep_length = len(episode)
+            # TODO: Arbitrary trace length
             trace_starting_point = random.randint(0, ep_length - trace_len)
             traces.append(episode[trace_starting_point : trace_starting_point + trace_len])
         return traces
@@ -130,15 +133,14 @@ class Net(nn.Module):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
+
         x = x.view(x.size(0), -1)
 
         hidden = self.lstm(x, hidden_states)
 
         x = hidden[0]
-        hidden_states = hidden
-        x = self.fc(x)
-
-        return x, hidden_states
+        x = F.relu(self.fc(x))
+        return x, hidden
 
 
 class drqn(ReinforcementLearningAlgorithm):
@@ -151,12 +153,13 @@ class drqn(ReinforcementLearningAlgorithm):
             default_discount_factor=0.99,
             default_start_eps=1,
             default_end_eps=0.1,
-            default_annealing_steps=2000,
+            default_annealing_steps=1000,
             default_num_episodes=110_000,
         )
 
         # for MiniGrid environments
         self.env: MiniGridEnv = self.env
+
         # really Discrete(7) for this env but we don't need the pick up, drop... actions
         self.env.action_space = Discrete(3)
         self.model = {"policy_network": Net().to(device), "target_network": Net().to(device)}
@@ -166,14 +169,16 @@ class drqn(ReinforcementLearningAlgorithm):
         target_net = self.model["target_network"]
         policy_net.train()
         target_net.train()
-
         criterion = F.mse_loss
         optimizer = optim.RMSprop(policy_net.parameters(), lr=self.lr, momentum=MOMENTUM)
         memory = EpisodeMemory(MEMORY_SIZE)
         writer = SummaryWriter(comment=f"-{self.model_name}")
         eps = self.start_eps
-        policy_hidden = (torch.zeros(4, 64), torch.zeros(4, 64))
-        target_hidden = (torch.zeros(4, 64), torch.zeros(4, 64))
+        policy_hidden = (torch.randn(TRACE_LENGTH, 64), torch.randn(TRACE_LENGTH, 64))
+        target_hidden = (torch.randn(TRACE_LENGTH, 64), torch.randn(TRACE_LENGTH, 64))
+
+        # For setting max nr of steps lower than MiniGrid
+        max_steps = 100
 
         with Tracker(writer) as tracker:
             for i in range(self.num_episodes + 1):
@@ -188,51 +193,40 @@ class drqn(ReinforcementLearningAlgorithm):
 
                 current_reward = 0
                 done = False
-                temp_memory = ReplayMemory(100)
 
-                batch_obs = torch.stack((obs, obs, obs, obs))
+                # Replaymemory for storing a single episode
+                temp_memory = ReplayMemory(max_steps)
 
-                while True:
+                batch_obs = torch.stack(tuple(obs.unsqueeze(0)) * TRACE_LENGTH)
+                episode_lstm_state = (torch.randn(TRACE_LENGTH, 64), torch.randn(TRACE_LENGTH, 64))
+                step = 0
+                while step < max_steps:
                     # greedy-epsilon
                     if np.random.rand(1) < eps:
                         # sample random action from action space
                         action = self.env.action_space.sample()
+
                     else:
                         with torch.no_grad():
-                            # choose action with highest Q value
-                            res = policy_net(batch_obs, policy_hidden)[0]
-
-                            # action, _ = policy_net(batch_obs, policy_hidden).argmax().item()
-                            action = res[0].argmax().item()
+                            # TODO: forward pass seems to always result in same action (zero tensor returned)
+                            res = policy_net(batch_obs, episode_lstm_state)
+                            episode_lstm_state = res[1]
+                            action = res[0][0].argmax().item()
 
                     # get next observation, reward and done from environment
                     next_obs, reward, done, _ = self.env.step(action)
                     next_obs = preprocess_obs(next_obs)
 
-                    # if done:
-                    #     next_obs = None
-
-                    temp_memory.push(
-                        obs, action, next_obs, reward
-                    )  # keeps track of transitions in episode
+                    # Push recent Transition to single episode memory
+                    temp_memory.push(obs, action, next_obs, reward)
 
                     # training sequence
                     if i > WARMUP and i % TRAIN_FREQ == 0:
                         traces = memory.sample(BATCH_SIZE, TRACE_LENGTH)
 
+                        # Train for each element in the batch
                         for trace in traces:
-
                             batch = Transition(*zip(*trace))
-
-                            # non_final_mask = torch.tensor(
-                            #     tuple(map(lambda s: s is not None, batch.next_state)),
-                            #     device=device,
-                            #     dtype=torch.uint8,
-                            # )
-
-                            # non_final_next_states = torch.stack(
-                            #     [s for s in batch.next_state if s is not None]
-                            # )
 
                             batch_state = torch.stack(batch.state)
                             batch_action = torch.tensor(batch.action, device=device).unsqueeze(1)
@@ -247,14 +241,6 @@ class drqn(ReinforcementLearningAlgorithm):
                             # max q value in the next observation * discount factor + the reward
                             next_q, target_hidden = target_net(batch_next_state, target_hidden)
                             next_q_max = next_q.max(1)[0].unsqueeze(1)
-
-                            # next_state_values[non_final_mask] = (
-                            #     policy_net(non_final_next_states).max(1)[0].unsqueeze(1)
-                            # )
-
-                            # next_q_max = next_state_values.max(1)[0].unsqueeze(1)
-
-                            # target_q = q.detach().clone()  # clone an independant
                             target_q = next_q_max * self.y + batch_reward
 
                             # compute loss
@@ -264,23 +250,27 @@ class drqn(ReinforcementLearningAlgorithm):
                             optimizer.zero_grad()
                             loss.backward()
                             optimizer.step()
-                            policy_hidden = (policy_hidden[0].detach_(), policy_hidden[1].detach_())
-                            target_hidden = (target_hidden[0].detach_(), target_hidden[1].detach_())
-                            
+
+                            # Reset LSTM internal states
+                            # TODO: Is this correct?
+                            policy_hidden = (
+                                torch.randn(TRACE_LENGTH, 64),
+                                torch.randn(TRACE_LENGTH, 64),
+                            )
+                            target_hidden = (
+                                torch.randn(TRACE_LENGTH, 64),
+                                torch.randn(TRACE_LENGTH, 64),
+                            )
 
                     if i > WARMUP:
-                        # policy_state = policy_net.state_dict()
-                        # target_state = target_net.state_dict()
-                        # for k, v in policy_state.items():
-                        #     target_state[k] = target_state[k] * (1 - TAU) + TAU * v
-                        # target_net.load_state_dict(target_state)
-
+                        # Periodically update target net to latest policy net
                         if i % (1 / TAU) == 0:
                             target_net.load_state_dict(policy_net.state_dict())
 
                     # update variables for next iteration
                     current_reward += reward
                     obs = next_obs
+                    step += 1
 
                     if i > WARMUP and self.render_interval != 0 and i % self.render_interval == 0:
                         self.env.render()
@@ -289,8 +279,9 @@ class drqn(ReinforcementLearningAlgorithm):
                     if done:
                         break
 
-                # TODO: make sure all traces are >= TRACE_LENGTH
-                memory.push(temp_memory)  # push episode to episode memory
+                if reward > 0 and len(temp_memory) > TRACE_LENGTH:
+                    memory.push(temp_memory)  # push episode to episode memory
+
                 tracker.push(episode=i, reward=current_reward, epsilon=eps)
                 if self.save_interval != 0 and i % self.save_interval == 0:
                     self.save()
